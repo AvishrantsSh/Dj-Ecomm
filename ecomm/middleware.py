@@ -1,36 +1,37 @@
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.utils.deprecation import MiddlewareMixin
 
-User = get_user_model()
-LOCK_URLS = (
-    "/register/seller/",
-    "/sheet/",
-    "/cart/",
-    "/profile/",
-)
-LOGIN_URL = ("/accounts/register/",)
-LOGOUT_URL = ("/accounts/logout/",)
+AUTH_SETTINGS = getattr(settings, "AuthRequiredMiddleware", {})
+LOGIN_URL = AUTH_SETTINGS.get("LOGIN_URL", None)
+LOGOUT_URL = AUTH_SETTINGS.get("LOGOUT_URL", None)
+DEFAULT_REDIRECT = AUTH_SETTINGS.get("DEFAULT_REDIRECT", None)
+LOCK_URLS = AUTH_SETTINGS.get("LOCK_URLS", None)
 
 
-class AuthRequired(MiddlewareMixin):
+class AuthRequiredMiddleware(MiddlewareMixin):
     def __init__(self, get_response):
         self.get_response = get_response
 
     def process_request(self, request):
         assert hasattr(request, "user")
-        path = request.path_info
+        current_url = resolve(request.path_info).url_name
+
+        if current_url == DEFAULT_REDIRECT or current_url == LOGIN_URL:
+            return None
 
         if not request.user.is_authenticated:
-            if str(path) in LOCK_URLS:
+            if current_url in LOCK_URLS:
                 return HttpResponseRedirect(
-                    reverse("login") + "?next=" + request.path
-                )  # or http response
-            elif str(path) in LOGOUT_URL:
-                return redirect("home")
+                    reverse(LOGIN_URL) + "?next=" + request.path
+                )
 
-        if request.user.is_authenticated and str(path) in LOGIN_URL:
-            return redirect("home")
+            # Fail-safe redirect
+            return redirect(DEFAULT_REDIRECT)
+
+        if request.user.is_authenticated and current_url in LOGIN_URL:
+            return redirect(DEFAULT_REDIRECT)
+
         return None

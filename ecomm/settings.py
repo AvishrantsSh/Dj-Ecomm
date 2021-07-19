@@ -51,9 +51,9 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "ecomm.middleware.AuthRequired",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "AuthMiddleware.middleware.AuthRequiredMiddleware",
 ]
 
 ROOT_URLCONF = "ecomm.urls"
@@ -146,3 +146,15 @@ CACHES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AUTH_SETTINGS = {
+    "LOGIN_URL": "login",
+    "LOGOUT_URL": "logout",
+    "DEFAULT_REDIRECT": "home",
+    "LOCK_URLS": (
+        "seller_reg",
+        "sheet",
+        "cart",
+        "profile",
+    ),
+}
